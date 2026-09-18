@@ -315,7 +315,13 @@ class Dice
 					} else {
 						$parameters[] = !$param->allowsNull() ? $this->create($class, [], $share) : null;
 					}
-				} catch (\InvalidArgumentException $e) {
+				} catch (\InvalidArgumentException | \Error $e) {
+					// \Error covers cases PHP refuses to instantiate outright (e.g. enums:
+					// "Cannot instantiate enum X"), which existing code only handled for
+					// interfaces (\InvalidArgumentException, thrown deliberately above).
+					// Fall back to the parameter's default value when one is available,
+					// same as the "no type hint, nothing left in $args" case below.
+					$parameters[] = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
 				}
 				// Find a match in $args for any reflected type (named/union/intersection).
 				else if ($args && $param->getType()) {
